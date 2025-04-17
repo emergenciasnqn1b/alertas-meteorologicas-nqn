@@ -2,7 +2,7 @@ name: Alertas Meteorológicas Neuquén
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Ejecuta cada hora
+    - cron: '*/15 * * * *'  # Cada 15 minutos
   workflow_dispatch:
 
 jobs:
