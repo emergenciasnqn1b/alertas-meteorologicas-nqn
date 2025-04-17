@@ -1,0 +1,60 @@
+name: Alertas Meteorológicas Neuquén
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Ejecuta cada hora
+  workflow_dispatch:
+
+jobs:
+  verificar-alertas:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clonar el repositorio
+        uses: actions/checkout@v3
+
+      - name: Instalar dependencias
+        run: pip install feedparser
+
+      - name: Verificar alertas y enviar mail
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
+          MAILS_POR_CIUDAD: ${{ secrets.MAILS_POR_CIUDAD }}
+        run: |
+          python <<EOF
+          import feedparser
+          import smtplib
+          import json
+          import os
+          from email.message import EmailMessage
+
+          zonas_neuquen = [
+              "Aluminé", "Andacollo", "Chapelco", "Chos Malal",
+              "Las Lajas", "Loncopué", "Junín de los Andes", "San Martín de los Andes"
+          ]
+
+          mails_por_ciudad = json.loads(os.environ["MAILS_POR_CIUDAD"])
+          feed = feedparser.parse("https://www.smn.gob.ar/alertas/rss")
+
+          for zona in zonas_neuquen:
+              alertas = []
+              for entrada in feed.entries:
+                  if zona.lower() in entrada.title.lower():
+                      alertas.append(f"- {entrada.title}\n{entrada.link}\n")
+
+              if alertas and zona in mails_por_ciudad:
+                  destinatario = mails_por_ciudad[zona]
+
+                  mensaje = EmailMessage()
+                  mensaje["Subject"] = f"🚨 Alerta Meteorológica en {zona}"
+                  mensaje["From"] = os.environ["GMAIL_USER"]
+                  mensaje["To"] = destinatario
+                  mensaje.set_content("Se detectaron las siguientes alertas:\n\n" + "\n".join(alertas))
+
+                  with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+                      smtp.login(os.environ["GMAIL_USER"], os.environ["GMAIL_PASS"])
+                      smtp.send_message(mensaje)
+              else:
+                  print(f"Sin alertas para {zona} o sin correo configurado.")
+          EOF
