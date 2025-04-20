@@ -30,7 +30,7 @@ jobs:
           from email.message import EmailMessage
 
           zonas_neuquen = [
-              "Aluminé", "Andacollo", "Chapelco", "Chos Malal",
+              "Aluminé", "Bariloche", "Andacollo", "Chapelco", "Chos Malal",
               "Las Lajas", "Loncopué", "Junín de los Andes", "San Martín de los Andes"
           ]
 
