@@ -20,7 +20,7 @@ jobs:
         env:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
-          MI_CORREO: ${{ secrets.MI_CORREO }}
+          MI_CORREO: ${{ secrets.GMAIL_USER }}
         run: |
           python <<EOF
           import feedparser
