@@ -20,37 +20,42 @@ jobs:
         env:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
-          MI_CORREO: ${{ secrets.GMAIL_USER }}
+          MAILS_POR_CIUDAD: ${{ secrets.MAILS_POR_CIUDAD }}
         run: |
           python <<EOF
           import feedparser
           import smtplib
+          import json
           import os
           from email.message import EmailMessage
 
           zonas_neuquen = [
-              "Aluminé", "Andacollo", "Chapelco", "Chos Malal",
+              "Aluminé", "Bariloche", "Andacollo", "Chapelco", "Chos Malal",
               "Las Lajas", "Loncopué", "Junín de los Andes", "San Martín de los Andes"
           ]
 
+          mails_por_ciudad = json.loads(os.environ["MAILS_POR_CIUDAD"])
           feed = feedparser.parse("https://www.smn.gob.ar/alertas/rss")
-          alertas_detectadas = []
 
           for zona in zonas_neuquen:
+              alertas = []
               for entrada in feed.entries:
                   if zona.lower() in entrada.title.lower():
-                      alertas_detectadas.append(f"- {zona}: {entrada.title}\n{entrada.link}\n")
+                      alertas.append(f"- {entrada.title}\n{entrada.link}\n")
 
-          if alertas_detectadas:
-              mensaje = EmailMessage()
-              mensaje["Subject"] = "🚨 Alertas Meteorológicas Detectadas"
-              mensaje["From"] = os.environ["GMAIL_USER"]
-              mensaje["To"] = os.environ["MI_CORREO"]
-              mensaje.set_content("Se detectaron las siguientes alertas:\n\n" + "\n".join(alertas_detectadas))
+              if alertas:
+                  destinatario = os.environ["GMAIL_USER"]  # Cambiar destinatario a GMAIL_USER
 
-              with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-                  smtp.login(os.environ["GMAIL_USER"], os.environ["GMAIL_PASS"])
-                  smtp.send_message(mensaje)
-          else:
-              print("No se detectaron alertas meteorológicas.")
+                  mensaje = EmailMessage()
+                  mensaje["Subject"] = f"🚨 Alerta Meteorológica en {zona}"
+                  mensaje["From"] = os.environ["GMAIL_USER"]
+                  mensaje["To"] = destinatario
+                  mensaje.set_content("Se detectaron las siguientes alertas:\n\n" + "\n".join(alertas))
+
+                  with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+                      smtp.login(os.environ["GMAIL_USER"], os.environ["GMAIL_PASS"])
+                      smtp.send_message(mensaje)
+              else:
+                  print(f"Sin alertas para {zona}.")
           EOF
+
