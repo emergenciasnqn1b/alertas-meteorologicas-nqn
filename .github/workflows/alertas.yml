@@ -1,0 +1,72 @@
+name: Alerta Meteorológica Neuquén
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # Cada 30 minutos
+  workflow_dispatch:
+
+jobs:
+  verificar-alertas:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Instalar dependencias
+        run: pip install feedparser requests
+
+      - name: Verificar alertas y enviar mail
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
+        run: |
+          python <<EOF
+          import feedparser
+          import requests
+          import smtplib
+          import os
+          from email.message import EmailMessage
+
+          zonas_neuquen = [
+              "Aluminé", "Bariloche", "Andacollo", "Chapelco", "Chos Malal",
+              "Las Lajas", "Loncopué", "Junín de los Andes", "San Martín de los Andes"
+          ]
+
+          FEED_URL = "https://ssl.smn.gob.ar/CAP/AR.php"
+          feed = feedparser.parse(FEED_URL)
+
+          alertas_detectadas = []
+
+          for entry in feed.entries:
+              title = entry.title
+              link = entry.link
+
+              try:
+                  detalle = requests.get(link, timeout=10)
+                  contenido = detalle.text.lower()
+              except Exception as e:
+                  print(f"Error descargando {link}: {e}")
+                  continue
+
+              for zona in zonas_neuquen:
+                  if zona.lower() in contenido:
+                      alertas_detectadas.append(f"- {zona}: {title}\n  {link}")
+                      break
+
+          if alertas_detectadas:
+              mensaje = EmailMessage()
+              mensaje["Subject"] = "🚨 Alerta Meteorológica en Neuquén"
+              mensaje["From"] = os.environ["GMAIL_USER"]
+              mensaje["To"] = "emergenciasnqn1b@gmail.com"
+              cuerpo = "Se detectaron alertas meteorológicas en zonas de Neuquén:\n\n"
+              cuerpo += "\n\n".join(alertas_detectadas)
+              mensaje.set_content(cuerpo)
+
+              try:
+                  with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+                      smtp.login(os.environ["GMAIL_USER"], os.environ["GMAIL_PASS"])
+                      smtp.send_message(mensaje)
+                  print("Correo enviado correctamente.")
+              except Exception as e:
+                  print(f"Error al enviar el correo: {e}")
+          else:
+              print("Sin alertas para las zonas de Neuquén.")
+          EOF
