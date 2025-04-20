@@ -32,8 +32,7 @@ jobs:
               "Aluminé", "Bariloche", "Andacollo", "Chapelco", "Chos Malal",
               "Las Lajas", "Loncopué", "Junín de los Andes", "San Martín de los Andes"
           ]
-
-          mails_por_ciudad = json.loads(os.environ["MAILS_POR_CIUDAD"])
+              
           feed = feedparser.parse("https://www.smn.gob.ar/alertas/rss")
 
           for zona in zonas_neuquen:
