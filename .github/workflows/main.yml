@@ -43,8 +43,8 @@ jobs:
                   if zona.lower() in entrada.title.lower():
                       alertas.append(f"- {entrada.title}\n{entrada.link}\n")
 
-              if alertas and zona in mails_por_ciudad:
-                  destinatario = mails_por_ciudad[zona]
+              if alertas:
+                  destinatario = os.environ["GMAIL_USER"]  # Cambiar destinatario a GMAIL_USER
 
                   mensaje = EmailMessage()
                   mensaje["Subject"] = f"🚨 Alerta Meteorológica en {zona}"
@@ -56,5 +56,5 @@ jobs:
                       smtp.login(os.environ["GMAIL_USER"], os.environ["GMAIL_PASS"])
                       smtp.send_message(mensaje)
               else:
-                  print(f"Sin alertas para {zona} o sin correo configurado.")
+                  print(f"Sin alertas para {zona}.")
           EOF
